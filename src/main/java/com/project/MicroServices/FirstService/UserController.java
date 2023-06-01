@@ -12,10 +12,13 @@ import java.util.UUID;
 @RequestMapping("/api")
 class UserController {
     private Connection connection;
-    private final String DB_URL = "jdbc:sqlite:authorization.db";
+
+    public UserController() {
+        initDB();
+    }
 
     private void connect() throws SQLException {
-        connection = DriverManager.getConnection(DB_URL);
+        connection = DriverManager.getConnection("jdbc:sqlite:authorization.db");
     }
 
     private void disconnect() throws SQLException {
@@ -24,33 +27,18 @@ class UserController {
         }
     }
 
-    public UserController() {
-        initializeDatabase();
-    }
-
-    private void initializeDatabase() {
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS user (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "username VARCHAR(50) UNIQUE NOT NULL, " +
-                    "email VARCHAR(100) UNIQUE NOT NULL, " +
-                    "password_hash VARCHAR(255) NOT NULL, " +
-                    "role VARCHAR(10) NOT NULL CHECK (role IN ('customer', 'chef', 'manager')), " +
-                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
-                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-            stmt.execute("CREATE TABLE IF NOT EXISTS session (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "user_id INTEGER NOT NULL, " +
-                    "session_token VARCHAR(255) NOT NULL, " +
-                    "expires_at TIMESTAMP NOT NULL, " +
-                    "FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE ON UPDATE CASCADE)");
+    private void initDB() {
+        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:authorization.db"); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE IF NOT EXISTS user (id INTEGER PRIMARY KEY AUTOINCREMENT, " + "username VARCHAR(50) UNIQUE NOT NULL, " + "email VARCHAR(100) UNIQUE NOT NULL, " + "password_hash VARCHAR(255) NOT NULL, " + "role VARCHAR(10) NOT NULL CHECK (role IN ('customer', 'chef', 'manager')), " + "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " + "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS session (id INTEGER PRIMARY KEY AUTOINCREMENT, " + "user_id INTEGER NOT NULL, " + "session_token VARCHAR(255) NOT NULL, " + "expires_at TIMESTAMP NOT NULL, " + "FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE ON UPDATE CASCADE)");
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody User user) {
-        if (!isValidEmail(user.getEmail())) {
+    public ResponseEntity<String> regUser(@RequestBody User user) {
+        if (!validateEmail(user.getEmail())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid email format");
         }
 
@@ -75,7 +63,7 @@ class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> loginUser(@RequestBody User user) {
+    public ResponseEntity<String> userLogin(@RequestBody User user) {
         try {
             connect();
 
@@ -90,7 +78,7 @@ class UserController {
                     // Генерация и сохранение токена сессии
                     String sessionToken = generateSessionToken();
                     java.util.Date expiresAt = new java.util.Date(System.currentTimeMillis() + 3600000); // Срок действия токена: 1 час
-                    saveSession(rs.getInt("id"), sessionToken, expiresAt);
+                    saveUserSession(rs.getInt("id"), sessionToken, expiresAt);
                     return ResponseEntity.ok(sessionToken);
                 } else {
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
@@ -111,7 +99,7 @@ class UserController {
     }
 
     @GetMapping("/user")
-    public ResponseEntity<String> getUserInfo(@RequestHeader("Authorization") String sessionToken) {
+    public ResponseEntity<String> getUser(@RequestHeader("Authorization") String sessionToken) {
         try {
             connect();
 
@@ -151,7 +139,7 @@ class UserController {
     }
 
 
-    private boolean isValidEmail(String email) {
+    private boolean validateEmail(String email) {
         return email.contains("@");
     }
 
@@ -159,7 +147,7 @@ class UserController {
         return UUID.randomUUID().toString();
     }
 
-    private void saveSession(int userId, String sessionToken, Date expiresAt) {
+    private void saveUserSession(int userId, String sessionToken, Date expiresAt) {
         try {
             String query = "INSERT INTO session (user_id, session_token, expires_at) VALUES (?, ?, ?)";
             PreparedStatement statement = connection.prepareStatement(query);

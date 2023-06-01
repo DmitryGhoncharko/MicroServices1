@@ -1,5 +1,7 @@
 package com.project.MicroServices.SecondService;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,15 +27,15 @@ public class OrderController {
     }
 
     @PostMapping("/orders")
-    public ResponseEntity<String> createOrder(@RequestBody Order order) {
+    public ResponseEntity<String> createNewOrder(@RequestBody Order order) {
         try {
             connect();
 
-            if (!isValidOrder(order)) {
+            if (!validateOrder(order)) {
                 return ResponseEntity.badRequest().body("Некорректные данные заказа");
             }
 
-            if (!areDishesAvailable(order)) {
+            if (!validateDishes(order)) {
                 return ResponseEntity.badRequest().body("Недоступные блюда в заказе");
             }
 
@@ -57,7 +59,7 @@ public class OrderController {
                         statement.setInt(1, orderId);
                         statement.setInt(2, orderDish.getDishId());
                         statement.setInt(3, orderDish.getQuantity());
-                        statement.setBigDecimal(4, orderDish.getPrice());
+                        statement.setBigDecimal(4,orderDish.getPrice());
                         statement.executeUpdate();
                     }
 
@@ -77,7 +79,7 @@ public class OrderController {
     }
 
     @GetMapping("/orders/{orderId}")
-    public ResponseEntity<Order> getOrder(@PathVariable int orderId) {
+    public ResponseEntity<Order> getOrderById(@PathVariable int orderId) {
         try {
             connect();
 
@@ -127,7 +129,7 @@ public class OrderController {
     }
 
     @GetMapping("/menu")
-    public ResponseEntity<List<Dish>> getMenu() {
+    public ResponseEntity<List<Dish>> getCurrentMenu() {
         try {
             connect();
 
@@ -155,11 +157,11 @@ public class OrderController {
         }
     }
 
-    private boolean isValidOrder(Order order) {
+    private boolean validateOrder(Order order) {
         return order.getUserId() != 0 && order.getDishes() != null && !order.getDishes().isEmpty();
     }
 
-    private boolean areDishesAvailable(Order order) {
+    private boolean validateDishes(Order order) {
         try {
             String query = "SELECT COUNT(*) FROM dish WHERE id = ? AND quantity >= ?";
             PreparedStatement statement = connection.prepareStatement(query);
@@ -180,7 +182,8 @@ public class OrderController {
         }
     }
 }
-
+@Getter
+@Setter
 class Order {
     private int id;
     private int userId;
@@ -190,54 +193,10 @@ class Order {
     private Timestamp updatedAt;
     private List<OrderDish> dishes;
 
-    public int getUserId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public String getSpecialRequests() {
-        return specialRequests;
-    }
-
-    public List<OrderDish> getDishes() {
-        return dishes;
-    }
-
-    public void setUserId(int userId) {
-        this.userId = userId;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public void setSpecialRequests(String specialRequests) {
-        this.specialRequests = specialRequests;
-    }
-
-    public void setCreatedAt(Timestamp createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public void setUpdatedAt(Timestamp updatedAt) {
-        this.updatedAt = updatedAt;
-
-    }
-
-    public void setDishes(List<OrderDish> orderDishes) {
-        this.dishes = orderDishes;
-
-    }
 
 }
-
+@Getter
+@Setter
 class OrderDish {
     private int id;
     private int orderId;
@@ -245,65 +204,13 @@ class OrderDish {
     private int quantity;
     private BigDecimal price;
 
-    public int getDishId() {
-        return id;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public void setOrderId(int orderId) {
-        this.orderId = orderId;
-    }
-
-    public void setDishId(int dishId) {
-        this.dishId = dishId;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
 }
-
+@Setter
 class Dish {
     private int id;
     private String name;
     private String description;
     private BigDecimal price;
     private int quantity;
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
 
 }

@@ -18,5 +18,10 @@ dependencies {
 	implementation 'org.xerial:sqlite-jdbc:3.34.0'
 	implementation 'com.zaxxer:HikariCP:4.0.3'
 	runtimeOnly 'com.h2database:h2'
+	compileOnly 'org.projectlombok:lombok:1.18.28'
+	annotationProcessor 'org.projectlombok:lombok:1.18.28'
+
+	testCompileOnly 'org.projectlombok:lombok:1.18.28'
+	testAnnotationProcessor 'org.projectlombok:lombok:1.18.28'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
